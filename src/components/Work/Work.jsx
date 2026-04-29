@@ -1,130 +1,192 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { projects } from "../../constants";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 const Work = () => {
   const [selectedProject, setSelectedProject] = useState(null);
+  const carouselRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const handleOpenModal = (project) => {
-    setSelectedProject(project);
+  const updateScrollState = () => {
+    const container = carouselRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
   };
 
-  const handleCloseModal = () => {
-    setSelectedProject(null);
+  useEffect(() => {
+    updateScrollState();
+    const container = carouselRef.current;
+    if (!container) return undefined;
+
+    container.addEventListener('scroll', updateScrollState, { passive: true });
+    window.addEventListener('resize', updateScrollState);
+
+    return () => {
+      container.removeEventListener('scroll', updateScrollState);
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, []);
+
+  const scrollCarousel = (direction) => {
+    const container = carouselRef.current;
+    if (!container) return;
+
+    const card = container.querySelector('[data-project-card]');
+    const cardWidth = card?.getBoundingClientRect().width ?? 0;
+    const gap = 24;
+    const amount = (cardWidth * 2) + gap;
+
+    container.scrollBy({
+      left: direction === 'left' ? -amount : amount,
+      behavior: 'smooth',
+    });
   };
 
   return (
-    <section
-      id="work"
-      className="py-24 pb-24 px-[12vw] md:px-[7vw] lg:px-[20vw] font-sans relative"
-    >
-      {/* Section Title */}
-      <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold text-white">PROJECTS</h2>
-        <div className="w-32 h-1 bg-purple-500 mx-auto mt-4"></div>
-        <p className="text-gray-400 mt-4 text-lg font-semibold">
-          A showcase of the projects I have worked on, highlighting my skills
-          and experience in various technologies
-        </p>
-      </div>
+    <section id="work" data-reveal className="py-16">
+      <div className="page-container">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-semibold text-[var(--text)]">Projects</h2>
+          <p className="text-[var(--muted)] mt-2 max-w-2xl mx-auto">
+            Selected projects focused on clean UI, practical functionality, and tools I can discuss confidently in interviews.
+          </p>
+        </div>
 
-      {/* Projects Grid */}
-      <div className="grid gap-12 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project) => (
+        <div className="relative mx-auto max-w-5xl px-0 md:px-14">
+          {canScrollLeft && (
+            <button
+              type="button"
+              onClick={() => scrollCarousel('left')}
+              className="absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 -translate-x-1/2 items-center justify-center rounded-full border border-gray-200 bg-white p-2 shadow-sm transition hover:bg-gray-50 md:flex"
+              aria-label="Scroll projects left"
+            >
+              <FiChevronLeft size={18} />
+            </button>
+          )}
+
+          {canScrollRight && (
+            <button
+              type="button"
+              onClick={() => scrollCarousel('right')}
+              className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-gray-200 bg-white p-2 shadow-sm transition hover:bg-gray-50 md:flex"
+              aria-label="Scroll projects right"
+            >
+              <FiChevronRight size={18} />
+            </button>
+          )}
+
           <div
-            key={project.id}
-            onClick={() => handleOpenModal(project)}
-            className="border border-white bg-gray-900 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden cursor-pointer hover:shadow-purple-500/50 hover:-translate-y-2 transition-transform duration-300"
+            ref={carouselRef}
+            className="no-scrollbar flex snap-x snap-mandatory gap-6 overflow-x-auto scroll-smooth pb-2"
           >
-            <div className="p-4">
-              <img
-                src={project.image}
-                alt={project.title}
-                className="w-full h-48 object-cover rounded-xl"
-              />
-            </div>
-            <div className="p-6">
-              <h3 className="text-2xl font-bold text-white mb-2">
-                {project.title}
-              </h3>
-              <p className="text-gray-500 mb-4 pt-4 line-clamp-3">
-                {project.description}
-              </p>
-              <div className="mb-4">
-                {project.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-block bg-[#251f38] text-xs font-semibold text-purple-500 rounded-full px-2 py-1 mr-2 mb-2"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Modal Container */}
-      {selectedProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4">
-          <div className="bg-gray-900 rounded-xl shadow-2xl lg:w-full w-[90%] max-w-3xl overflow-hidden relative">
-            <div className="flex justify-end p-4">
-              <button
-                onClick={handleCloseModal}
-                className="text-white text-3xl font-bold hover:text-purple-500"
-              >
-                &times;
-              </button>
-            </div>
-
-            <div className="flex flex-col">
-              <div className="w-full flex justify-center bg-gray-900 px-4">
+            {projects.map((project) => (
+            <div
+              key={project.id}
+              data-project-card
+              onClick={() => setSelectedProject(project)}
+              className="group min-w-full snap-start overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer md:min-w-[calc((100%-24px)/2)]"
+            >
+              <div className="relative h-44 w-full overflow-hidden bg-gray-50">
                 <img
-                  src={selectedProject.image}
-                  alt={selectedProject.title}
-                  className="lg:w-full w-[95%] object-contain rounded-xl shadow-2xl"
+                  src={project.image}
+                  alt={project.title}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
               </div>
-              <div className="lg:p-8 p-6">
-                <h3 className="lg:text-3xl font-bold text-white mb-4 text-md">
-                  {selectedProject.title}
-                </h3>
-                <p className="text-gray-400 mb-6 lg:text-base text-xs">
-                  {selectedProject.description}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {selectedProject.tags.map((tag, index) => (
+
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">Featured Work</p>
+                    <h3 className="mt-2 text-xl font-semibold text-[var(--text)]">{project.title}</h3>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-sm leading-6 text-[var(--muted)] line-clamp-3">{project.description}</p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {project.tags.map((tag, i) => (
                     <span
-                      key={index}
-                      className="bg-[#251f38] text-xs font-semibold text-purple-500 rounded-full px-2 py-1"
+                      key={i}
+                      className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-[var(--muted)]"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
-                <div className="flex gap-4">
-                  <a
-                    href={selectedProject.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-1/2 bg-gray-800 hover:bg-purple-800 text-gray-400 lg:px-6 lg:py-2 px-2 py-1 rounded-xl lg:text-xl text-sm font-semibold text-center"
-                  >
-                    View Code
-                  </a>
-                  <a
-                    href={selectedProject.webapp}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-1/2 bg-purple-600 hover:bg-purple-800 text-white lg:px-6 lg:py-2 px-2 py-1 rounded-xl lg:text-xl text-sm font-semibold text-center"
-                  >
-                    View Live
-                  </a>
+
+                <div className="mt-5 flex items-center justify-between text-sm text-[var(--text)]">
+                  <span className="font-medium">View details</span>
+                  <span className="text-[var(--muted)] transition-transform group-hover:translate-x-1">→</span>
+                </div>
+              </div>
+            </div>
+            ))}
+          </div>
+        </div>
+
+        {selectedProject && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">Project details</p>
+                  <h3 className="mt-1 text-2xl font-semibold text-[var(--text)]">{selectedProject.title}</h3>
+                </div>
+                <button onClick={() => setSelectedProject(null)} className="text-3xl leading-none text-[var(--muted)]">
+                  &times;
+                </button>
+              </div>
+
+              <div className="grid gap-0 md:grid-cols-[1.2fr_0.8fr]">
+                <div className="bg-gray-50 p-4 md:p-6">
+                  <img
+                    src={selectedProject.image}
+                    alt={selectedProject.title}
+                    className="h-full w-full rounded-xl object-cover shadow-sm"
+                  />
+                </div>
+
+                <div className="p-6">
+                  <p className="text-sm leading-6 text-[var(--muted)]">{selectedProject.description}</p>
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {selectedProject.tags.map((tag, i) => (
+                      <span key={i} className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-[var(--muted)]">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 flex gap-3">
+                    <a
+                      href={selectedProject.github}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex flex-1 items-center justify-center rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-[var(--text)] transition hover:bg-gray-50"
+                    >
+                      View Code
+                    </a>
+                    <a
+                      href={selectedProject.webapp}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex flex-1 items-center justify-center rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-95"
+                    >
+                      View Live
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 };

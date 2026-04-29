@@ -1,147 +1,150 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
-import { FaGithub, FaLinkedin } from "react-icons/fa";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("");
   const [isScrolled, setIsScrolled] = useState(false);
+  const [activeId, setActiveId] = useState("about");
+  const activeIdRef = useRef("about");
+  const tickingRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const scrollTimeoutRef = useRef(null);
 
-  // Detect scroll and change navbar background
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Smooth scroll function
-  const handleMenuItemClick = (sectionId) => {
-    setActiveSection(sectionId);
-    setIsOpen(false);
-
-    const section = document.getElementById(sectionId);
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
   const menuItems = [
     { id: "about", label: "About" },
     { id: "skills", label: "Skills" },
-    { id: "experience", label: "Experience" },
     { id: "work", label: "Projects" },
     { id: "education", label: "Education" },
+    { id: "contact", label: "Contact" },
   ];
 
+  const handleNav = (id) => {
+    setIsOpen(false);
+    // mark this navigation as programmatic so the scroll spy doesn't fight the smooth scroll
+    activeIdRef.current = id;
+    setActiveId(id);
+
+    const el = document.getElementById(id);
+    if (el) {
+      isProgrammaticScrollRef.current = true;
+      // clear any previous timeout
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      // After the smooth scroll finishes, allow the scroll spy to resume and ensure active is set
+      scrollTimeoutRef.current = setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+        activeIdRef.current = id;
+        setActiveId(id);
+      }, 600);
+    }
+  };
+
+  useEffect(() => {
+    const sectionIds = menuItems.map((m) => m.id);
+    const headerOffset = 120;
+
+    const updateActiveSection = () => {
+      tickingRef.current = false;
+
+      // if a programmatic scroll is in progress, skip updating from scroll events
+      if (isProgrammaticScrollRef.current) return;
+
+      // choose the section whose top edge is closest to the header offset line
+      let currentSection = "about";
+      let smallestDistance = Infinity;
+
+      sectionIds.forEach((id) => {
+        const section = document.getElementById(id);
+        if (!section) return;
+
+        const rect = section.getBoundingClientRect();
+        const distance = Math.abs(rect.top - headerOffset);
+        if (distance < smallestDistance) {
+          smallestDistance = distance;
+          currentSection = id;
+        }
+      });
+
+      if (activeIdRef.current !== currentSection) {
+        activeIdRef.current = currentSection;
+        setActiveId(currentSection);
+      }
+    };
+
+    updateActiveSection();
+    const onScroll = () => {
+      if (tickingRef.current) return;
+      tickingRef.current = true;
+      window.requestAnimationFrame(updateActiveSection);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", updateActiveSection);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", updateActiveSection);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
+  }, []);
+
   return (
-    <nav
-      className={`fixed top-0 w-full z-50 transition duration-300 px-[7vw] md:px-[7vw] lg:px-[20vw] ${
-        isScrolled ? "bg-[#050414] bg-opacity-50 backdrop-blur-md shadow-md" : "bg-transparent"
-      }`}
-    >
-      <div className="text-white py-5 flex justify-between items-center">
-        {/* Logo */}
-        <div className="text-lg font-semibold cursor-pointer">
-          <span className="text-[#8245ec]">&lt;</span>
-          <span className="text-white">Ritesh</span>
-          <span className="text-[#8245ec]"> </span>
-          <span className="text-white">Sahani /</span>
-          <span className="text-[#8245ec]">&gt;</span>
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-colors ${isScrolled ? 'backdrop-blur-sm bg-white/60 border-b' : 'bg-transparent'}`}>
+      <div className="page-container flex items-center justify-between py-4">
+        <div className="flex items-center gap-3">
+          <div className="px-1 py-0">
+            <span className="font-mono text-sm md:text-base leading-none select-none text-[var(--text)]">
+              <span className="text-[var(--accent)] font-semibold">[R]</span>itesh <span className="text-[var(--accent)] font-semibold">[S]</span>ahani
+            </span>
+          </div>
         </div>
 
-        {/* Desktop Menu */}
-        <ul className="hidden md:flex space-x-8 text-gray-300">
-          {menuItems.map((item) => (
-            <li
-              key={item.id}
-              className={`cursor-pointer hover:text-[#8245ec] ${
-                activeSection === item.id ? "text-[#8245ec]" : ""
-              }`}
-            >
-              <button onClick={() => handleMenuItemClick(item.id)}>
-                {item.label}
+        <nav className="hidden md:flex items-center gap-6 text-sm">
+          {menuItems.map((m) => {
+            const isActive = activeId === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => handleNav(m.id)}
+                className={`hover:text-[var(--accent)] ${isActive ? 'text-[var(--accent)] font-semibold' : 'text-[var(--muted)]'}`}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {m.label}
               </button>
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+        </nav>
 
-        {/* Social Icons */}
-        <div className="hidden md:flex space-x-4">
-          <a
-            href="https://github.com/Ritesh078bct"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-300 hover:text-[#8245ec]"
-          >
-            <FaGithub size={24} />
-          </a>
-          <a
-            href="https://www.linkedin.com/in/ritesh-sahani-548a4219a/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-300 hover:text-[#8245ec]"
-          >
-            <FaLinkedin size={24} />
-          </a>
-        </div>
-
-        {/* Mobile Menu Icon */}
         <div className="md:hidden">
-          {isOpen ? (
-            <FiX
-              className="text-3xl text-[#8245ec] cursor-pointer"
-              onClick={() => setIsOpen(false)}
-            />
-          ) : (
-            <FiMenu
-              className="text-3xl text-[#8245ec] cursor-pointer"
-              onClick={() => setIsOpen(true)}
-            />
-          )}
+          <button onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu">
+            {isOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Menu Items */}
       {isOpen && (
-        <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-4/5 bg-[#050414] bg-opacity-50 backdrop-filter backdrop-blur-lg z-50 rounded-lg shadow-lg md:hidden">
-          <ul className="flex flex-col items-center space-y-4 py-4 text-gray-300">
-            {menuItems.map((item) => (
-              <li
-                key={item.id}
-                className={`cursor-pointer hover:text-white ${
-                  activeSection === item.id ? "text-[#8245ec]" : ""
-                }`}
-              >
-                <button onClick={() => handleMenuItemClick(item.id)}>
-                  {item.label}
+        <div className="md:hidden bg-white/95 border-t">
+          <div className="flex flex-col gap-3 page-container py-4">
+            {menuItems.map((m) => {
+              const isActive = activeId === m.id;
+              return (
+                <button key={m.id} onClick={() => handleNav(m.id)} className={`text-left py-2 ${isActive ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text)]'}`}>
+                  {m.label}
                 </button>
-              </li>
-            ))}
-            <div className="flex space-x-4">
-              <a
-                href="https://github.com/Ritesh078bct"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-300 hover:text-white"
-              >
-                <FaGithub size={24} />
-              </a>
-              <a
-                href="https://www.linkedin.com/in/ritesh-sahani-548a4219a/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-300 hover:text-white"
-              >
-                <FaLinkedin size={24} />
-              </a>
-            </div>
-          </ul>
+              );
+            })}
+          </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 };
 

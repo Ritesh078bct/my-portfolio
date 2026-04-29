@@ -1,80 +1,90 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { education } from "../../constants"; // Import the education data
 
 const Education = () => {
+  const [expandedId, setExpandedId] = useState(null);
+
+  const orderedEducation = useMemo(
+    () => [...education].sort((a, b) => a.order - b.order),
+    []
+  );
+
   return (
-    <section
-      id="education"
-      className="py-24 pb-24 px-[12vw] md:px-[7vw] lg:px-[16vw] font-sans bg-skills-gradient clip-path-custom-3"
-    >
-      {/* Section Title */}
-      <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold text-white">EDUCATION</h2>
-        <div className="w-32 h-1 bg-purple-500 mx-auto mt-4"></div>
-        <p className="text-gray-400 mt-4 text-lg font-semibold">
-          My education has been a journey of learning and development. Here are the details of my academic background
-        </p>
-      </div>
+    <section id="education" data-reveal className="py-16">
+      <div className="page-container">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-semibold text-[var(--text)]">Education</h2>
+          <p className="text-[var(--muted)] mt-2 max-w-2xl mx-auto">
+            A simple academic roadmap starting from school level and moving up to university.
+          </p>
+        </div>
 
-      {/* Education Timeline */}
-      <div className="relative">
-        {/* Vertical line */}
-        <div className="absolute sm:left-1/2 left-0 transform -translate-x-1/2 sm:-translate-x-0 w-1 bg-white h-full"></div>
+        <div className="relative mx-auto max-w-3xl">
+          <div className="absolute left-5 top-4 h-[calc(100%-2rem)] w-px bg-gradient-to-b from-[var(--accent)] via-gray-200 to-gray-200 md:left-8" />
 
-        {/* Education Entries */}
-        {education.map((edu, index) => (
-          <div
-            key={edu.id}
-            className={`flex flex-col sm:flex-row items-center mb-16 ${
-              index % 2 === 0 ? "sm:justify-start" : "sm:justify-end"
-            }`}
-          >
-            {/* Timeline Circle */}
-            <div className="absolute sm:left-1/2 left-0 transform -translate-x-1/2 bg-gray-400 border-4 border-[#8245ec] w-12 h-12 sm:w-16 sm:h-16 rounded-full flex justify-center items-center z-10">
-              <img
-                src={edu.img}
-                alt={edu.school}
-                className="w-full h-full object-cover rounded-full"
-              />
-            </div>
+          <div className="space-y-5">
+            {orderedEducation.map((edu) => {
+              const isExpanded = expandedId === edu.id;
 
-            {/* Content Section */}
-            <div
-              className={`w-full sm:max-w-md p-4 sm:p-8 rounded-2xl shadow-2xl border border-white bg-gray-900 backdrop-blur-md shadow-[0_0_20px_1px_rgba(130,69,236,0.3)] ${
-                index % 2 === 0 ? "sm:ml-0" : "sm:mr-0"
-              } sm:ml-44 sm:mr-44 ml-8 transform transition-transform duration-300 hover:scale-105`}
-            >
-              {/* Flex container for image and text */}
-              <div className="flex items-center space-x-6">
-                {/* School Logo/Image */}
-                <div className="w-24 h-16 bg-white rounded-md overflow-hidden">
-                  <img
-                    src={edu.img}
-                    alt={edu.school}
-                    className="w-full h-full object-cover"
-                  />
+              return (
+                <div key={edu.id} className="relative pl-14 md:pl-20">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(isExpanded ? null : edu.id)}
+                    className="group w-full rounded-2xl border border-gray-100 bg-white p-5 text-left shadow-sm transition-all duration-300 hover:shadow-md"
+                    aria-expanded={isExpanded}
+                  >
+                    <div className="absolute left-1 top-5 flex h-10 w-10 items-center justify-center rounded-full border-4 border-white bg-[var(--accent)] text-sm font-semibold text-white shadow-sm md:left-3">
+                      {String(edu.order).padStart(2, "0")}
+                    </div>
+
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-6">
+                      <div className="min-w-0">
+                        <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">Level</p>
+                        <h3 className="mt-1 text-lg font-semibold text-[var(--text)] md:text-xl">
+                          {edu.degree}
+                        </h3>
+                        <p className="mt-2 text-sm text-[var(--muted)]">{edu.location}</p>
+                      </div>
+
+                      <div className="flex items-center gap-3 md:flex-col md:items-end md:gap-1">
+                        <span className="rounded-full bg-gray-50 px-3 py-1 text-sm font-medium text-[var(--text)]">
+                          {edu.date}
+                        </span>
+                        <span className="text-xs text-[var(--muted)]">{edu.status ?? "Graduated"}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
+                      <span className="text-sm text-[var(--muted)]">
+                        {isExpanded ? "Hide details" : "Click to view institution and grades"}
+                      </span>
+                      <span className={`text-[var(--muted)] transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}>
+                        ▼
+                      </span>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="mt-4 grid gap-4 border-t border-gray-100 pt-4 md:grid-cols-[1fr_1.2fr]">
+                        <div className="space-y-2 text-sm text-[var(--muted)]">
+                          <div>
+                            <span className="font-medium text-[var(--text)]">Institution:</span>{" "}
+                            {edu.school}
+                          </div>
+                          <div>
+                            <span className="font-medium text-[var(--text)]">Result:</span>{" "}
+                            {edu.grade}
+                          </div>
+                        </div>
+                        <p className="text-sm leading-6 text-[var(--muted)]">{edu.desc}</p>
+                      </div>
+                    )}
+                  </button>
                 </div>
-
-                {/* Degree, School Name, and Date */}
-                <div className="flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xl sm:text-xl font-semibold text-white">
-                      {edu.degree}
-                    </h3>
-                    <h4 className="text-md sm:text-sm text-gray-300">
-                      {edu.school}
-                    </h4>
-                  </div>
-                  {/* Date at the bottom */}
-                  <p className="text-sm text-gray-500 mt-2">{edu.date}</p>
-                </div>
-              </div>
-
-              <p className="mt-4 text-gray-400 font-bold">Grade: {edu.grade}</p>
-              <p className="mt-4 text-gray-400">{edu.desc}</p>
-            </div>
+              );
+            })}
           </div>
-        ))}
+        </div>
       </div>
     </section>
   );
